@@ -37,6 +37,19 @@ defmodule BfTree do
   - `:buffer_size` - Maximum entries in write buffer before consolidation
   - `:node_degree` - B+tree node branching factor
   - `:consolidate_interval` - Milliseconds between automatic consolidations
+
+  ## Persistence (Phase 2+)
+
+  Save and load trees from disk:
+
+      tree = BfTree.new()
+      {:ok, tree} = BfTree.insert(tree, "key", "value")
+
+      # Save tree to disk
+      {:ok, path} = BfTree.Persistence.FileStore.save(tree, "/tmp/db")
+
+      # Load tree from disk
+      {:ok, restored} = BfTree.Persistence.FileStore.load(path)
   """
 
   alias BfTree.{Node, Buffer, Tree}

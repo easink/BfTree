@@ -19,7 +19,10 @@ This design achieves **2-5x faster write performance** compared to traditional B
 ✅ Hot-cold tier separation for efficient memory usage
 ✅ Generic key-value storage (comparable keys, any values)
 ✅ Range queries with efficient traversal
-✅ Comprehensive test coverage (101 tests, 0 failures)
+✅ **File-based persistence with binary serialization (Phase 2)**
+✅ **Cold tier storage with LSM-tree design (Phase 2)**
+✅ **Checkpoint system for snapshots (Phase 2)**
+✅ Comprehensive test coverage (139 tests, 0 failures)
 ✅ Well-documented with examples
 
 ## Installation
@@ -66,6 +69,15 @@ values = BfTree.values(tree)
 
 # Manually consolidate buffer to hot tier
 tree = BfTree.consolidate(tree)
+
+# Save to disk (Phase 2+)
+{:ok, db_path} = BfTree.Persistence.FileStore.save(tree, "/tmp/my_db")
+
+# Restore from disk (Phase 2+)
+{:ok, restored} = BfTree.Persistence.FileStore.load(db_path)
+
+# Create timestamped checkpoint (Phase 2+)
+{:ok, checkpoint_name} = BfTree.Persistence.FileStore.checkpoint(tree, db_path)
 ```
 
 ## Configuration
@@ -147,10 +159,12 @@ When buffer reaches configured size limit, all entries are merged into the hot t
 - Tree wrapper for unified operations
 - Comprehensive test suite (101 tests)
 
-### Phase 2: Persistence Layer
+### ✅ Phase 2: Persistence Layer (COMPLETE)
 - File-based serialization (binary format)
-- Cold tier storage with approximate indexing
+- Cold tier storage with LSM-tree design
+- Checkpoint system with snapshots
 - Persistence API (save/restore)
+- Test suite (38 tests)
 
 ### Phase 3: Concurrency Support
 - Read-write lock abstraction
@@ -159,6 +173,7 @@ When buffer reaches configured size limit, all entries are merged into the hot t
 
 ### Phase 4: Advanced Features
 - Bloom filters for cold tier queries
+- Level compaction (LSM-tree compaction)
 - Batch insert optimizations
 - Iterator/streaming API
 - Compression support
@@ -178,9 +193,9 @@ mix test --cover            # With coverage report
 
 **Current Status**:
 - 44 doctests
-- 57 unit tests
+- 95 unit tests
 - 0 failures
-- Full coverage of core functionality
+- Full coverage of core functionality (Phase 1 + Phase 2)
 
 ## Documentation
 
@@ -220,18 +235,33 @@ test/
 └── bf_tree_test.exs        # Comprehensive tests (580 lines)
 ```
 
+### Phase 2 Structure
+
+```
+lib/bf_tree/
+└── persistence/
+    ├── serializer.ex       # Binary serialization (115 lines)
+    ├── cold_tier.ex        # Disk storage (280 lines)
+    └── file_store.ex       # High-level API (220 lines)
+
+test/
+└── bf_tree_persistence_test.exs  # Tests (435 lines)
+```
+
 ### Key Implementation Decisions
 
 1. **Pure Functional**: All operations return new instances
 2. **Immutable Buffers**: Uses MapSet for tombstones, list for entries
 3. **Automatic Splits**: Nodes split at 32 entries (configurable)
 4. **Simple Consolidation**: Fold buffer entries into hot tree
-5. **String/Atom/Integer Keys**: Basic key validation
+5. **Binary Serialization**: Uses Erlang `term_to_binary` for efficiency
+6. **LSM-Tree Design**: Multi-level sorted storage on disk
+7. **Checkpoint System**: Microsecond-precise snapshots
 
 ## Future Work
 
-- [ ] Persistence layer (Phase 2)
-- [ ] Concurrent access (Phase 3)
+- [ ] Persistence layer enhancements (compaction, bloom filters, compression)
+- [ ] Concurrent access support (Phase 3)
 - [ ] Advanced indexing features (Phase 4)
 - [ ] Production benchmarks (Phase 5)
 - [ ] Comparison with other data structures
